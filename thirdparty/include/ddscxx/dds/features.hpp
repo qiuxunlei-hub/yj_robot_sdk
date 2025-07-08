@@ -2,7 +2,7 @@
 #define __OMG_DDS_DDSCXX_FEATURES_HPP__
 
 /* Whether or not support for shared memory is included */
-/* #undef DDSCXX_HAS_SHM */
+#define DDSCXX_HAS_SHM 1
 
 /* Whether or not support for type discovery is included */
 #define DDSCXX_HAS_TYPE_DISCOVERY 1

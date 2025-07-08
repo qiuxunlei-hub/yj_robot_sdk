@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.5)
 
 # 定义项目名称和版本号
-project(unitree_sdk2 VERSION 2.0.0)
+project(yunji_sdk VERSION 1.0.0)
 
 ## Project Options
 # 添加一个选项，用于控制是否构建示例程序
@@ -52,33 +52,33 @@ add_subdirectory(thirdparty)
 
 ## Import Unitree SDK2 library
 # 设置Unitree SDK库的查找路径（基于系统架构）
-set(UNITREE_SDK_PATH ${CMAKE_CURRENT_LIST_DIR}/lib/${CMAKE_SYSTEM_PROCESSOR})
-# 查找名为unitree_sdk2的预编译库
-find_library(UNITREE_SDK_LIB unitree_sdk2 PATHS ${UNITREE_SDK_PATH} NO_DEFAULT_PATH)
+# set(UNITREE_SDK_PATH ${CMAKE_CURRENT_LIST_DIR}/lib/${CMAKE_SYSTEM_PROCESSOR})
+# # 查找名为unitree_sdk2的预编译库
+# find_library(UNITREE_SDK_LIB unitree_sdk2 PATHS ${UNITREE_SDK_PATH} NO_DEFAULT_PATH)
 
-# 检查是否找到库文件
-if (NOT UNITREE_SDK_LIB)
-    message(FATAL_ERROR "Unitree SDK library for the architecture is not found")
-else ()
-    message(STATUS "Unitree SDK library found at: ${UNITREE_SDK_LIB}")
-endif ()
+# # 检查是否找到库文件
+# if (NOT UNITREE_SDK_LIB)
+#     message(FATAL_ERROR "Unitree SDK library for the architecture is not found")
+# else ()
+#     message(STATUS "Unitree SDK library found at: ${UNITREE_SDK_LIB}")
+# endif ()
 
-message(STATUS "Importing: ${UNITREE_SDK_LIB}")
+# message(STATUS "Importing: ${UNITREE_SDK_LIB}")
 
 # 查找系统线程库
 find_package(Threads REQUIRED)
 
-# 创建导入的静态库目标
-add_library(unitree_sdk2 STATIC IMPORTED GLOBAL)
-# 设置导入库的路径
-set_target_properties(unitree_sdk2 PROPERTIES
-        IMPORTED_LOCATION ${UNITREE_SDK_LIB})
-# 设置库的依赖关系
-target_link_libraries(unitree_sdk2 INTERFACE ddsc ddscxx Threads::Threads)
-# 设置库的头文件包含路径
-target_include_directories(unitree_sdk2 INTERFACE
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-        $<INSTALL_INTERFACE:include>)
+# # 创建导入的静态库目标
+# add_library(unitree_sdk2 STATIC IMPORTED GLOBAL)
+# # 设置导入库的路径
+# set_target_properties(unitree_sdk2 PROPERTIES
+#         IMPORTED_LOCATION ${UNITREE_SDK_LIB})
+# # 设置库的依赖关系
+# target_link_libraries(unitree_sdk2 INTERFACE ddsc ddscxx Threads::Threads)
+# # 设置库的头文件包含路径
+# target_include_directories(unitree_sdk2 INTERFACE
+#         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+#         $<INSTALL_INTERFACE:include>)
 
 # 如果启用了示例构建选项，添加示例目录
 if (BUILD_EXAMPLES)

@@ -12,10 +12,10 @@
 #ifndef DDS_VERSION_H
 #define DDS_VERSION_H
 
-#define DDS_VERSION "0.10.2"
+#define DDS_VERSION "0.10.4"
 #define DDS_VERSION_MAJOR 0
 #define DDS_VERSION_MINOR 10
-#define DDS_VERSION_PATCH 2
+#define DDS_VERSION_PATCH 4
 #define DDS_VERSION_TWEAK 
 #define DDS_PROJECT_NAME "CycloneDDS"
 
