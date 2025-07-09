@@ -37,7 +37,8 @@ target_link_directories(ddscxx INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/lib/${CMAKE
 # 设置头文件包含路径（包含额外的 ddscxx 目录）
 target_include_directories(ddscxx INTERFACE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>          # 主头文件目录
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/ddscxx>   # ddscxx 特定头文件
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/iceoryx/v2.0.2>   # ddscxx 特定头文件
+         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/ddscxx>  
         $<INSTALL_INTERFACE:include>                                    # 安装后的主头文件目录
         $<INSTALL_INTERFACE:include/ddscxx>)                            # 安装后的 ddscxx 头文件目录
 
