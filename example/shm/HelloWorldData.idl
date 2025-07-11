@@ -1,0 +1,12 @@
+module ThroughputModule
+{
+
+  @final
+  struct DataType_262144
+  {
+    unsigned long long count;
+    unsigned long payloadsize;
+    octet payload[1024 - 12];
+  };
+
+};

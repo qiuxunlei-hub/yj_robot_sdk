@@ -1,0 +1,16 @@
+<CycloneDDS xmlns="https://cdds.io/config">
+  <Domain id="any">
+    <SharedMemory>
+      <Enable>true</Enable>
+      <ServiceName>cyclonedds_demo</ServiceName>
+      <InstanceName>demo_instance</InstanceName>
+      <MaxSamples>128</MaxSamples>
+    </SharedMemory>
+    
+    <Internal>
+      <SampleCache>
+        <MaxSamples>1024</MaxSamples>
+      </SampleCache>
+    </Internal>
+  </Domain>
+</CycloneDDS>
