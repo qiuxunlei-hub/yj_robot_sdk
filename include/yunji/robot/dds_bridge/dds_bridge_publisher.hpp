@@ -1,5 +1,5 @@
-#ifndef __YJ_ROBOT_SDK_CHANNEL_PUBLISHER_HPP__
-#define __YJ_ROBOT_SDK_CHANNEL_PUBLISHER_HPP__
+#ifndef __YJ_ROBOT_SDK_Bridge_PUBLISHER_HPP__
+#define __YJ_ROBOT_SDK_Bridge_PUBLISHER_HPP__
 
 /**
  * @file bridge_publisher.hpp
@@ -39,20 +39,19 @@ public:
      */
     void IniteBridge()
     {
-        mBridgePtr = ChannelFactory::Instance()->CreateSendChannel<MSG>(mTopicName);
+        mBridgePtr = BridgeFactory::Instance()->CreateSendBridge<MSG>(mTopicName);
     }
 
     /**
      * @brief 发布消息
      * @param msg 要发送的消息对象（常量引用）
-     * @param waitMicrosec 写入超时时间（微秒，0表示非阻塞）
      * @return true 发送成功，false 发送失败或通道未初始化
      */
-    bool Write(const MSG& msg, int64_t waitMicrosec = 0)
+    bool Write(const MSG& msg)
     {
         if (mBridgePtr)
         {
-            return mBridgePtr->Write(msg, waitMicrosec);
+            return mBridgePtr->Write(msg);
         }
 
         return false;
@@ -70,7 +69,7 @@ public:
      * @brief 获取BridgePtr Topic名称
      * @return const std::string& 通道名称引用
      */
-    const std::string& GetChannelName() const
+    const std::string& GetBridgeName() const
     {
         return mTopicName;
     }
@@ -78,13 +77,13 @@ public:
 private:
     std::string mTopicName;             //< DDS Topic 名称
     
-    ChannelPtr<MSG> mBridgePtr;
+    BridgePtr<MSG> mBridgePtr;
 };
 
 template<typename MSG>
-using ChannelPublisherPtr = std::shared_ptr<ChannelPublisher<MSG>>;
+using BridgePublisherPtr = std::shared_ptr<BridgePublisher<MSG>>;
 
 }
 }
 
-#endif//__UT_ROBOT_SDK_CHANNEL_PUBLISHER_HPP__
+#endif//__UT_ROBOT_SDK_Bridge_PUBLISHER_HPP__

@@ -7,7 +7,7 @@
  * @copyright Copyright (c) 2025 YunJi Robotics. All rights reserved.
  */
 
-#include <yunji/common/dds/dds_factory_model.hpp> 
+#include <yunji/robot/dds_bridge/dds_factory_model.hpp> 
 
 namespace yunji
 {
@@ -20,11 +20,11 @@ namespace robot
  * @tparam MSG 消息类型（需支持DDS序列化）
  */
 template<typename MSG>
-using Bridge = unitree::common::DdsTopicChannel<MSG>;
+using Bridge = yunji::robot::DdsTopicChannel<MSG>;
 
 
 template<typename MSG>
-using BridgePtr = unitree::common::DdsTopicChannelPtr<MSG>;
+using BridgePtr = yunji::robot::DdsTopicChannelPtr<MSG>;
 
 /**
  * @class BridgeFactory
@@ -75,15 +75,7 @@ public:
      * @throws DdsException 创建失败时抛出
      */
     template<typename MSG>
-    BridgePtr<MSG> CreateSendBridge(const std::string& name)
-    {
-        
-        BridgePtr<MSG> bridgePtr = mDdsFactoryPtr->CreateTopicChannel<MSG>(name);
-        
-        mDdsFactoryPtr->SetWriter(bridgePtr);
-
-        return bridgePtr;
-    }
+    BridgePtr<MSG> CreateSendBridge(const std::string& name);
 
     /**
      * @brief 创建订阅通道（模板方法）
@@ -96,14 +88,7 @@ public:
     template<typename MSG>
     BridgePtr<MSG> CreateRecvBridge(const std::string& name, 
                                     std::function<void(const void*)> callback, 
-                                    int32_t queuelen = 0)
-    {
-        
-        BridgePtr<MSG> bridgePtr = mDdsFactoryPtr->CreateTopicChannel<MSG>(name);
-        
-        mDdsFactoryPtr->SetReader(bridgePtr, callback, queuelen);
-        return bridgePtr;
-    }
+                                    int32_t queuelen = 0);
 
 public:
     ~BridgeFactory()
@@ -116,8 +101,7 @@ private:
 
 private:
     bool mInited;                     
-    common::DdsFactoryModelPtr mDdsFactoryPtr;  
-    common::Mutex mMutex;             
+    yunji::robot::DdsFactoryPtr mDdsFactoryPtr;           
 };
 
 }

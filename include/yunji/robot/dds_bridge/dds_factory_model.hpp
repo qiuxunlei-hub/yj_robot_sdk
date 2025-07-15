@@ -1,5 +1,5 @@
-#ifndef __YUNJI_COMMON_DDS_DDS_FACTORY_MODEL_HPP__
-#define __YUNJI_COMMON_DDS_DDS_FACTORY_MODEL_HPP__
+#ifndef YUNJI_COMMON_DDS_DDS_FACTORY_MODEL_HPP
+#define YUNJI_COMMON_DDS_DDS_FACTORY_MODEL_HPP
 
 /**
  * @file dds_factory_model.hpp
@@ -12,199 +12,136 @@
 #include <string>
 #include <functional>
 #include <mutex>
+#include <unordered_map>
+#include <typeindex>
 
 namespace yunji {
-namespace common {
+namespace robot {
 
 /**
  * @class DdsTopicChannel
- * @brief DDS主题通道模板类（类型安全封装）
- * @tparam T 消息类型
+ * @brief DDS主题通道抽象接口
+ * @tparam MsgType 消息数据类型
  */
-template<typename T>
+template<typename MsgType>
 class DdsTopicChannel {
 public:
-    /**
-     * @brief 写入消息
-     * @param msg 消息对象
-     * @param waitMicrosec 等待超时时间（微秒）
-     * @return true 写入成功，false 写入失败
-     */
-    virtual bool Write(const T& msg, int64_t waitMicrosec = 0) = 0;
-    
     virtual ~DdsTopicChannel() = default;
+    
+    /**
+     * @brief 写入消息到DDS网络
+     * @param message 消息对象
+     * @param timeout_us 等待超时时间（微秒，0表示非阻塞）
+     * @return 是否写入成功
+     */
+    virtual bool Write(const MsgType& message) = 0;
+
+    virtual uint64_t GetLastDataAvailableTime() = 0;
 };
 
-/**
- * @brief DDS主题通道智能指针模板
- * @tparam T 消息类型
- */
-template<typename T>
-using DdsTopicChannelPtr = std::shared_ptr<DdsTopicChannel<T>>;
+/// DDS主题通道智能指针
+template<typename MsgType>
+using DdsTopicChannelPtr = std::shared_ptr<DdsTopicChannel<MsgType>>;
 
 /**
- * @class DdsFactoryModel
- * @brief DDS工厂模型（抽象层核心）
+ * @class DdsFactory
+ * @brief DDS工厂核心类
  * 
- * 提供与具体DDS实现无关的接口，封装以下功能：
+ * 封装DDS核心功能：
  * 1. DDS域初始化
- * 2. 主题通道创建
- * 3. 读写器设置
+ * 2. 主题通道管理
+ * 3. 读写器生命周期管理
+ * 
+ * @note 线程安全设计
  */
-class DdsFactoryModel : public std::enable_shared_from_this<DdsFactoryModel> {
+class DdsFactory : public std::enable_shared_from_this<DdsFactory> {
 public:
-    using Ptr = std::shared_ptr<DdsFactoryModel>;
+    using Ptr = std::shared_ptr<DdsFactory>;
     
-    DdsFactoryModel();
-    virtual ~DdsFactoryModel();
+    DdsFactory();
+    virtual ~DdsFactory();
+    
+    // 禁用拷贝和赋值
+    DdsFactory(const DdsFactory&) = delete;
+    DdsFactory& operator=(const DdsFactory&) = delete;
     
     /**
      * @brief 初始化DDS域
-     * @param domainId 域ID
-     * @param networkInterface 网络接口
+     * @param domain_id DDS域ID
+     * @param network_interface 绑定的网络接口(空字符串表示默认)
+     * @throws std::runtime_error 初始化失败时抛出
      */
-    void Init(int32_t domainId, const std::string& networkInterface = "");
+    void initialize(int32_t domain_id, const std::string& network_interface = "");
     
     /**
      * @brief 通过配置文件初始化
-     * @param configFileName 配置文件路径
+     * @param config_path 配置文件路径
+     * @throws std::runtime_error 初始化失败时抛出
      */
-    void Init(const std::string& configFileName);
+    void initialize(const std::string& config_path);
     
     /**
      * @brief 释放所有DDS资源
+     * @note 自动调用，也可手动提前释放
      */
-    void Release();
+    void shutdown();
     
     /**
      * @brief 创建主题通道
-     * @tparam T 消息类型
-     * @param topicName 主题名称
-     * @return DdsTopicChannelPtr<T> 主题通道智能指针
+     * @tparam MsgType 消息类型
+     * @param topic_name 主题名称
+     * @return 主题通道智能指针
      */
-    template<typename T>
-    DdsTopicChannelPtr<T> CreateTopicChannel(const std::string& topicName) {
-        auto channel = std::make_shared<DdsTopicChannelImpl<T>>(shared_from_this(), topicName);
-        return channel;
-    }
+    template<typename MsgType>
+    DdsTopicChannelPtr<MsgType> create_topic_channel(const std::string& topic_name);
     
     /**
-     * @brief 设置写入器
-     * @tparam T 消息类型
+     * @brief 启用主题的写入功能
+     * @tparam MsgType 消息类型
      * @param channel 主题通道
      */
-    template<typename T>
-    void SetWriter(DdsTopicChannelPtr<T> channel) {
-        auto impl = std::dynamic_pointer_cast<DdsTopicChannelImpl<T>>(channel);
-        if (impl) {
-            impl->CreateWriter();
-        }
-    }
+    template<typename MsgType>
+    void enable_writer(DdsTopicChannelPtr<MsgType> channel);
     
     /**
-     * @brief 设置读取器
-     * @tparam T 消息类型
+     * @brief 启用主题的读取功能
+     * @tparam MsgType 消息类型
      * @param channel 主题通道
-     * @param callback 数据回调函数
-     * @param queueLen 队列长度
+     * @param data_callback 数据到达回调函数
+     * @param queue_capacity 内部队列容量(0表示默认)
      */
-    template<typename T>
-    void SetReader(DdsTopicChannelPtr<T> channel, 
-                  std::function<void(const void*)> callback, 
-                  int32_t queueLen = 0) {
-        auto impl = std::dynamic_pointer_cast<DdsTopicChannelImpl<T>>(channel);
-        if (impl) {
-            impl->CreateReader(callback, queueLen);
-        }
-    }
-    
+    template<typename MsgType>
+    void enable_reader(DdsTopicChannelPtr<MsgType> channel, 
+                      std::function<void(const MsgType&)> data_callback,
+                      size_t queue_capacity = 0);
+
 private:
     // 内部实现类
-    template<typename T>
-    class DdsTopicChannelImpl : public DdsTopicChannel<T> {
-    public:
-        DdsTopicChannelImpl(std::shared_ptr<DdsFactoryModel> factory, 
-                           const std::string& topicName)
-            : mFactory(factory), mTopicName(topicName) {}
-        
-        bool Write(const T& msg, int64_t waitMicrosec = 0) override {
-            if (!mWriter) {
-                return false;
-            }
-            try {
-                mWriter->write(msg);
-                return true;
-            } catch (const dds::core::Exception& e) {
-                // 错误处理
-                return false;
-            }
-        }
-        
-        void CreateWriter() {
-            if (!mWriter) {
-                // 创建数据写入器
-                dds::pub::qos::DataWriterQos qos;
-                qos << dds::core::policy::Reliability::Reliable();
-                mWriter = std::make_unique<dds::pub::DataWriter<T>>(
-                    mFactory->mPublisher, mFactory->mTopicMap.at(mTopicName), qos);
-            }
-        }
-        
-        void CreateReader(std::function<void(const void*)> callback, int32_t queueLen) {
-            if (!mReader) {
-                // 创建数据读取器
-                dds::sub::qos::DataReaderQos qos;
-                qos << dds::core::policy::Reliability::Reliable();
-                mReader = std::make_unique<dds::sub::DataReader<T>>(
-                    mFactory->mSubscriber, mFactory->mTopicMap.at(mTopicName), qos);
-                
-                // 设置监听器
-                mReader->listener([callback](dds::sub::DataReader<T>& reader) {
-                    dds::sub::LoanedSamples<T> samples = reader.take();
-                    for (const auto& sample : samples) {
-                        if (sample.info().valid()) {
-                            callback(static_cast<const void*>(&sample.data()));
-                        }
-                    }
-                }, dds::core::status::StatusMask::data_available());
-            }
-        }
-        
-    private:
-        std::shared_ptr<DdsFactoryModel> mFactory;
-        std::string mTopicName;
-        std::unique_ptr<dds::pub::DataWriter<T>> mWriter;
-        std::unique_ptr<dds::sub::DataReader<T>> mReader;
-    };
+    template<typename MsgType>
+    class TopicChannelImpl;
     
     // 获取或创建主题
-    template<typename T>
-    dds::topic::Topic<T> GetOrCreateTopic(const std::string& topicName) {
-        std::lock_guard<std::mutex> lock(mMutex);
-        auto it = mTopicMap.find(topicName);
-        if (it != mTopicMap.end()) {
-            return dds::topic::topic_cast<dds::topic::Topic<T>>(it->second);
-        }
-        
-        dds::topic::Topic<T> topic(mParticipant, topicName);
-        mTopicMap[topicName] = topic;
-        return topic;
-    }
+    template<typename MsgType>
+    dds::topic::Topic<MsgType> get_or_create_topic(const std::string& topic_name);
     
-private:
-    dds::domain::DomainParticipant mParticipant;
-    dds::pub::Publisher mPublisher;
-    dds::sub::Subscriber mSubscriber;
+    // DDS核心实体
+    dds::domain::DomainParticipant m_participant;
+    dds::pub::Publisher m_publisher;
+    dds::sub::Subscriber m_subscriber;
     
-    std::unordered_map<std::string, dds::topic::TopicDescription> mTopicMap;
-    std::mutex mMutex;
+    // 主题管理
+    std::mutex m_topic_mutex;    //互斥锁，用于保护topic资源
+
+    std::unordered_map<std::string, dds::topic::TopicDescription> m_topic_registry;     //定义一个无序映射（哈希表），用于存储topic name到 topic 的映射
+
+    std::unordered_map<std::string, std::type_index> m_topic_type_map;                  //定义一个无序映射（哈希表），用于存储topic name到 topic message type的映射
     
-    bool mInitialized = false;
-};
+    bool m_initialized = false;
+}
 
-using DdsFactoryModelPtr = DdsFactoryModel::Ptr;
+using DdsFactoryPtr = DdsFactoryModel::Ptr;
 
-} // namespace common
-} // namespace unitree
+} // namespace robot
+} // namespace yunji
 
-#endif // __YUNJI_COMMON_DDS_DDS_FACTORY_MODEL_HPP__
+#endif // YUNJI_COMMON_DDS_DDS_FACTORY_MODEL_HPP

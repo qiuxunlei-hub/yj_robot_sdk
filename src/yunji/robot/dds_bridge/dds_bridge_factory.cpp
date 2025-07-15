@@ -16,7 +16,7 @@ namespace robot {
  */
 BridgeFactory::BridgeFactory() : 
     mInited(false),
-    mDdsFactoryPtr(std::make_shared<unitree::common::DdsFactoryModel>()) {}
+    mDdsFactoryPtr(std::make_shared<yunji::robot::DdsFactory>()) {}
 
 /**
  * @brief ChannelFactory析构函数
@@ -27,17 +27,16 @@ BridgeFactory::~BridgeFactory() {
 }
 
 void BridgeFactory::Init(int32_t domainId, const std::string& networkInterface) {
-    unitree::common::LockGuard lock(mMutex);
     
     if (mInited) {
-        throw unitree::common::DdsException("BridgeFactory already initialized");
+        throw yunji::robot::DdsException("BridgeFactory already initialized");
     }
 
     try {
-        mDdsFactoryPtr->Init(domainId, networkInterface);
+        mDdsFactoryPtr->initialize(domainId, networkInterface);
         mInited = true;
     } catch (const std::exception& e) {
-        throw unitree::common::DdsException(std::string("DDS init failed: ") + e.what());
+        throw yunji::robot::DdsException(std::string("DDS init failed: ") + e.what());
     }
 }
 
@@ -48,17 +47,17 @@ void BridgeFactory::Init(int32_t domainId, const std::string& networkInterface) 
  * @note 线程安全，使用互斥锁保护
  */
 void BridgeFactory::Init(const std::string& configFileName) {
-    unitree::common::LockGuard lock(mMutex);
+    yunji::robot::LockGuard lock(mMutex);
     
     if (mInited) {
-        throw unitree::common::DdsException("BridgeFactory already initialized");
+        throw yunji::robot::DdsException("BridgeFactory already initialized");
     }
 
     try {
-        mDdsFactoryPtr->Init(configFileName);
+        mDdsFactoryPtr->initialize(configFileName);
         mInited = true;
     } catch (const std::exception& e) {
-        throw unitree::common::DdsException(std::string("DDS config load failed: ") + e.what());
+        throw yunji::robot::DdsException(std::string("DDS config load failed: ") + e.what());
     }
 }
 
@@ -68,12 +67,49 @@ void BridgeFactory::Init(const std::string& configFileName) {
  * @details 如果已初始化，则调用底层Release()并重置状态
  */
 void BridgeFactory::Release() {
-    unitree::common::LockGuard lock(mMutex);
-    
+
     if (mInited) {
-        mDdsFactoryPtr->Release();
+        mDdsFactoryPtr->shutdown();
         mInited = false;
     }
+}
+
+/**
+ * @brief 创建发布通道（模板方法）
+ * @tparam MSG 消息类型
+ * @param name 通道名称（对应DDS Topic）
+ * @return ChannelPtr<MSG> 通道智能指针
+ * @throws DdsException 创建失败时抛出
+ */
+template<typename MSG>
+BridgePtr<MSG> BridgeFactory::CreateSendBridge(const std::string& name)
+{
+    
+    BridgePtr<MSG> bridgePtr = mDdsFactoryPtr->create_topic_channel<MSG>(name);
+    
+    mDdsFactoryPtr->enable_writer<MSG>(bridgePtr);
+
+    return bridgePtr;
+}
+
+/**
+ * @brief 创建订阅通道（模板方法）
+ * @tparam MSG 消息类型
+ * @param name 通道名称
+ * @param callback 数据到达回调函数 void(const void* data)
+ * @param queuelen 消息队列长度（0=默认值）
+ * @return ChannelPtr<MSG> 通道智能指针
+ */
+template<typename MSG>
+BridgePtr<MSG> CreateRecvBridge(const std::string& name, 
+                                std::function<void(const void*)> callback, 
+                                int32_t queuelen = 0)
+{
+    
+    BridgePtr<MSG> bridgePtr = mDdsFactoryPtr->create_topic_channel<MSG>(name);
+    
+    mDdsFactoryPtr->enable_reader<MSG>(bridgePtr, callback, queuelen);
+    return bridgePtr;
 }
 
 } // namespace robot

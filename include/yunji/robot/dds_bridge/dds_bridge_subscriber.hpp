@@ -1,75 +1,70 @@
-#ifndef __UT_ROBOT_SDK_CHANNEL_SUBSCRIBER_HPP__
-#define __UT_ROBOT_SDK_CHANNEL_SUBSCRIBER_HPP__
+#ifndef __UT_ROBOT_SDK_Bridge_SUBSCRIBER_HPP__
+#define __UT_ROBOT_SDK_Bridge_SUBSCRIBER_HPP__
 
-#include <unitree/robot/channel/channel_factory.hpp>
+#include "yunji/robot/dds_bridge/dds_bridge_factory.hpp"
 
-namespace unitree
+namespace yunji
 {
 namespace robot
 {
+    
 template<typename MSG>
-class ChannelSubscriber
+class BridgeSubscriber
 {
 public:
-    explicit ChannelSubscriber(const std::string& channelName) :
-        mChannelName(channelName), mQueueLen(0)
-    {}
+    explicit BridgeSubscriber(const std::string& BridgeName, int64_t queuelen = 0) :
+        mBridgeName(BridgeName), mQueueLen(queuelen)
+        {}
 
-    explicit ChannelSubscriber(const std::string& channelName, const std::function<void(const void*)>& handler, int64_t queuelen = 0) :
-        mChannelName(channelName), mQueueLen(queuelen), mHandler(handler)
-    {}
-
-    void InitChannel(const std::function<void(const void*)>& handler, int64_t queuelen = 0)
+    void InitBridge(const std::function<void(const void*)>& handler, int64_t queuelen = 0)
     {
         mHandler = handler;
         mQueueLen = queuelen;
-
-        InitChannel();
-    }
-
-    void InitChannel()
-    {
+        
         if (mHandler)
         {
-            mChannelPtr = ChannelFactory::Instance()->CreateRecvChannel<MSG>(mChannelName, mHandler, mQueueLen);
+            mBridgePtr = BridgeFactory::Instance()->CreateRecvBridge<MSG>(mBridgeName, mHandler, mQueueLen);
         }
         else
         {
-            UT_THROW(common::CommonException, "subscribe handler is invalid");
+            ;;
         }
     }
 
-    void CloseChannel()
+    void CloseBridge()
     {
-        mChannelPtr.reset();
+        mBridgePtr.reset();     //释放当前智能指针对象
     }
 
-    int64_t GetLastDataAvailableTime() const
+    uint64_t GetLastDataAvailableTime() const
     {
-        if (mChannelPtr)
+        if (mBridgePtr)
         {
-            return mChannelPtr->GetLastDataAvailableTime();
+            return mBridgePtr->GetLastDataAvailableTime();
         }
 
         return -1;
     }
 
-    const std::string& GetChannelName() const
+    const std::string& GetBridgeName() const
     {
-        return mChannelName;
+        return mBridgeName;
     }
 
 private:
-    std::string mChannelName;
+    std::string mBridgeName;
+
     int64_t mQueueLen;
+
     std::function<void(const void*)> mHandler;
-    ChannelPtr<MSG> mChannelPtr;
+
+    BridgePtr<MSG> mBridgePtr;
 };
 
 template<typename MSG>
-using ChannelSubscriberPtr = std::shared_ptr<ChannelSubscriber<MSG>>;
+using BridgeSubscriberPtr = std::shared_ptr<BridgeSubscriber<MSG>>;
 
 }
 }
 
-#endif//__UT_ROBOT_SDK_CHANNEL_SUBSCRIBER_HPP__
+#endif//__UT_ROBOT_SDK_Bridge_SUBSCRIBER_HPP__
