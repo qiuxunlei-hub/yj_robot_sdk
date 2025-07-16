@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.5)
 
 # 定义项目名称和版本号
-project(yunji_sdk VERSION 1.0.0)
+project(Yunji_sdk VERSION 1.0.0)
 
 ## Project Options
 # 添加一个选项，用于控制是否构建示例程序
@@ -42,43 +42,60 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR}
 # 可执行文件输出到<build_dir>/bin
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/${CMAKE_INSTALL_BINDIR})
 
+# 定义项目根目录变量
+set(PROJECT_ROOT_DIR ${CMAKE_SOURCE_DIR})
+
 ## Check system architecture
 # 打印当前系统架构信息
 message(STATUS "Current system architecture: ${CMAKE_SYSTEM_PROCESSOR}")
+
+# 查找系统线程库
+find_package(Threads REQUIRED)
 
 ## Import thirdparty libraries
 # 添加第三方库目录（该目录应有自己的CMakeLists.txt）
 add_subdirectory(thirdparty)
 
-## Import Unitree SDK2 library
-# 设置Unitree SDK库的查找路径（基于系统架构）
-# set(UNITREE_SDK_PATH ${CMAKE_CURRENT_LIST_DIR}/lib/${CMAKE_SYSTEM_PROCESSOR})
-# # 查找名为unitree_sdk2的预编译库
-# find_library(UNITREE_SDK_LIB unitree_sdk2 PATHS ${UNITREE_SDK_PATH} NO_DEFAULT_PATH)
+option(BUILD_YUNJI_FROM_SOURCE "Build yunji_sdk from source" ON)
 
-# # 检查是否找到库文件
-# if (NOT UNITREE_SDK_LIB)
-#     message(FATAL_ERROR "Unitree SDK library for the architecture is not found")
-# else ()
-#     message(STATUS "Unitree SDK library found at: ${UNITREE_SDK_LIB}")
-# endif ()
+if(BUILD_YUNJI_FROM_SOURCE)
 
-# message(STATUS "Importing: ${UNITREE_SDK_LIB}")
+    #编译yunji_sdk静态库
+    add_subdirectory(src/yunji)
 
-# 查找系统线程库
-find_package(Threads REQUIRED)
+else()
 
-# # 创建导入的静态库目标
-# add_library(unitree_sdk2 STATIC IMPORTED GLOBAL)
-# # 设置导入库的路径
-# set_target_properties(unitree_sdk2 PROPERTIES
-#         IMPORTED_LOCATION ${UNITREE_SDK_LIB})
-# # 设置库的依赖关系
-# target_link_libraries(unitree_sdk2 INTERFACE ddsc ddscxx Threads::Threads)
-# # 设置库的头文件包含路径
-# target_include_directories(unitree_sdk2 INTERFACE
-#         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-#         $<INSTALL_INTERFACE:include>)
+    # Import Yunji SDK library
+    # 设置Yunji SDK库的查找路径（基于系统架构）
+    set(Yunji_SDK_PATH ${CMAKE_CURRENT_LIST_DIR}/lib/${CMAKE_SYSTEM_PROCESSOR})
+    # 查找名为yunji_sdk的预编译库
+    find_library(Yunji_SDK_LIB yunji_sdk PATHS ${Yunji_SDK_PATH} NO_DEFAULT_PATH)
+
+    # 检查是否找到库文件
+    if (NOT Yunji_SDK_LIB)
+        message(FATAL_ERROR "Yunji SDK library for the architecture is not found")
+    else ()
+        message(STATUS "Yunji SDK library found at: ${Yunji_SDK_LIB}")
+    endif ()
+
+    message(STATUS "Importing: ${Yunji_SDK_LIB}")
+
+    # 创建导入的静态库目标
+    add_library(yunji_sdk STATIC IMPORTED GLOBAL)
+    # 设置导入库的路径
+    set_target_properties(yunji_sdk PROPERTIES
+            IMPORTED_LOCATION ${Yunji_SDK_LIB})
+
+    # 设置库的依赖关系
+    target_link_libraries(yunji_sdk INTERFACE ddsc ddscxx Threads::Threads)
+
+    # 设置库的头文件包含路径
+    target_include_directories(yunji_sdk INTERFACE
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+            $<INSTALL_INTERFACE:include>)
+
+endif()
+
 
 # 如果启用了示例构建选项，添加示例目录
 if (BUILD_EXAMPLES)
@@ -91,24 +108,26 @@ install(DIRECTORY include/
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 # 安装库文件
-install(FILES ${UNITREE_SDK_LIB}
+install(FILES ${Yunji_SDK_LIB}
     DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 # 安装目标配置文件
-install(FILES cmake/unitree_sdk2Targets.cmake
-    DESTINATION lib/cmake/unitree_sdk2)
+install(FILES cmake/yunji_sdkTargets.cmake
+    DESTINATION lib/cmake/yunji_sdk)
 
 # 包含用于创建包配置的辅助函数
 include(CMakePackageConfigHelpers)
+
 # 生成包版本文件
 write_basic_package_version_file(
-    unitree_sdk2ConfigVersion.cmake
+    yunji_sdkConfigVersion.cmake
     VERSION "${${PROJECT_NAME}_VERSION_MAJOR}.${${PROJECT_NAME}_VERSION_MINOR}.${${PROJECT_NAME}_VERSION_PATCH}"
     COMPATIBILITY ExactVersion)
 
 # 配置包配置文件（从模板生成）
-configure_file(cmake/unitree_sdk2Config.cmake.in unitree_sdk2Config.cmake @ONLY)
+configure_file(cmake/yunji_sdkConfig.cmake.in yunji_sdkConfig.cmake @ONLY)
+
 # 安装生成的配置文件
-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/unitree_sdk2Config.cmake"
-    "${CMAKE_CURRENT_BINARY_DIR}/unitree_sdk2ConfigVersion.cmake"
-    DESTINATION lib/cmake/unitree_sdk2)
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/yunji_sdkConfig.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/yunji_sdkConfigVersion.cmake"
+    DESTINATION lib/cmake/yunji_sdk)

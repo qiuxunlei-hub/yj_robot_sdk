@@ -7,7 +7,8 @@
  * @copyright Copyright (c) 2025 YunJi Robotics. All rights reserved.
  */
 
-#include <yunji/robot/dds_bridge/dds_factory_model.hpp> 
+#include <dds/dds.hpp>  // CycloneDDS核心头文件
+#include <thread>  // 添加这行
 
 namespace yunji
 {
@@ -15,37 +16,16 @@ namespace yunji
 namespace robot
 {
 
-/**
- * @brief DDS通道类型别名（值语义）
- * @tparam MSG 消息类型（需支持DDS序列化）
- */
-template<typename MSG>
-using Bridge = yunji::robot::DdsTopicChannel<MSG>;
 
-
-template<typename MSG>
-using BridgePtr = yunji::robot::DdsTopicChannelPtr<MSG>;
-
-/**
- * @class BridgeFactory
- * @brief DDS代理类（单例模式）
- * 
- * 提供以下核心功能：
- * 1. 初始化DDS域和网络接口
- * 2. 创建发布/订阅通道
- * 3. 管理通道生命周期
- */
 class BridgeFactory {
+
 public:
-    /**
-     * @brief 获取单例实例
-     * @return ChannelFactory* 单例指针
-     * @note 线程安全的懒汉式单例（C++11标准保证）
-     */
-    static BridgeFactory* Instance()
-    {
-        static BridgeFactory inst;
-        return &inst;
+
+    static BridgeFactory* Instance() {
+
+        static BridgeFactory instance;
+
+        return &instance;
     }
 
     /**
@@ -53,55 +33,28 @@ public:
      * @param domainId DDS域ID（建议范围：0~232）
      * @param networkInterface 绑定的网络接口名（如"eth0"，空字符串为自动选择）
      */
-    void Init(int32_t domainId, const std::string& networkInterface = "");
+    void Init(int domain_id, const std::string& network_interface = "");
 
     /**
      * @brief 初始化DDS通信层（通过配置文件）
      * @param configFileName XML配置文件路径（如"config/cyclonedds.xml"）
      */
-    void Init(const std::string& configFileName = "");
+    void Init(const std::string& config_path = "");
 
-    /**
-     * @brief 释放所有DDS资源
-     * @warning 调用后需重新Init才能使用
-     */
-    void Release();
 
-    /**
-     * @brief 创建发布通道（模板方法）
-     * @tparam MSG 消息类型
-     * @param name 通道名称（对应DDS Topic）
-     * @return ChannelPtr<MSG> 通道智能指针
-     * @throws DdsException 创建失败时抛出
-     */
-    template<typename MSG>
-    BridgePtr<MSG> CreateSendBridge(const std::string& name);
 
-    /**
-     * @brief 创建订阅通道（模板方法）
-     * @tparam MSG 消息类型
-     * @param name 通道名称
-     * @param callback 数据到达回调函数 void(const void* data)
-     * @param queuelen 消息队列长度（0=默认值）
-     * @return ChannelPtr<MSG> 通道智能指针
-     */
-    template<typename MSG>
-    BridgePtr<MSG> CreateRecvBridge(const std::string& name, 
-                                    std::function<void(const void*)> callback, 
-                                    int32_t queuelen = 0);
 
-public:
-    ~BridgeFactory()
-    {
-        Release();
+    std::shared_ptr<dds::domain::DomainParticipant> GetParticipant() const {
+
+        return participant_;
+
     }
 
 private:
-    BridgeFactory();  
 
-private:
-    bool mInited;                     
-    yunji::robot::DdsFactoryPtr mDdsFactoryPtr;           
+    BridgeFactory() = default;
+
+    std::shared_ptr<dds::domain::DomainParticipant> participant_;
 };
 
 }

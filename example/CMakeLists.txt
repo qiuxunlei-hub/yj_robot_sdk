@@ -1,2 +1,2 @@
-# add_subdirectory(helloworld)
-add_subdirectory(shm)
+add_subdirectory(helloworld)
+# add_subdirectory(shm)

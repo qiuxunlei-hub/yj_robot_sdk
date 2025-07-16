@@ -7,7 +7,7 @@
  * @copyright Copyright (c) 2025 YunJi Robotics. All rights reserved.
  */
 
-#include <yunji/robot/bridge/bridge_factory.hpp>
+#include "yunji/robot/dds_bridge/dds_bridge_factory.hpp"
 
 namespace yunji
 {
@@ -15,73 +15,52 @@ namespace yunji
 namespace robot
 {
 
+template <typename T> class BridgePublisher;
+
+template <typename T>
+using BridgePublisherPtr = std::unique_ptr<BridgePublisher<T>>;
+
+
 /**
  * @class BridgePublisher
  * @brief 泛型DDS消息发布者模板类
  * @tparam MSG 发布的消息类型（需支持DDS序列化）
  */
-template<typename MSG>
-class BridgePublisher
-{
+template <typename T>
+class BridgePublisher {
 public:
+    explicit BridgePublisher(const std::string& topic)
+        : participant_(BridgeFactory::Instance()->GetParticipant()), topic_name_(topic) {}
 
-    /**
-     * @brief 显式构造函数
-     * @param TopicName 通道名称（对应DDS Topic名称）
-     */
-    explicit BridgePublisher(const std::string& TopicName) :
-        mTopicName(TopicName)
-    {}
-
-     /**
-     * @brief 初始化Bridge
-     * @note 需在调用Write()前执行
-     */
-    void IniteBridge()
-    {
-        mBridgePtr = BridgeFactory::Instance()->CreateSendBridge<MSG>(mTopicName);
-    }
-
-    /**
-     * @brief 发布消息
-     * @param msg 要发送的消息对象（常量引用）
-     * @return true 发送成功，false 发送失败或通道未初始化
-     */
-    bool Write(const MSG& msg)
-    {
-        if (mBridgePtr)
-        {
-            return mBridgePtr->Write(msg);
+    bool InitBridge() {
+        try {
+            topic_ = std::make_shared<dds::topic::Topic<T>>(*participant_, topic_name_);
+            publisher_ = std::make_shared<dds::pub::Publisher>(*participant_);
+            writer_ = std::make_shared<dds::pub::DataWriter<T>>(* publisher_, *topic_);
+            return true;
+        } catch (const std::exception& e) {
+            std::cerr << "Publisher init failed: " << e.what() << std::endl;
+            return false;
         }
-
-        return false;
     }
 
-    /**
-     * @brief 关闭通道（释放DDS资源）
-     */
-    void CloseBridge()
-    {
-        mBridgePtr.reset();
-    }
-
-    /**
-     * @brief 获取BridgePtr Topic名称
-     * @return const std::string& 通道名称引用
-     */
-    const std::string& GetBridgeName() const
-    {
-        return mTopicName;
+    bool Write(const T& msg) {
+        try {
+            writer_->write(msg);
+            return true;
+        } catch (const std::exception& e) {
+            std::cerr << "Publish error: " << e.what() << std::endl;
+            return false;
+        }
     }
 
 private:
-    std::string mTopicName;             //< DDS Topic 名称
-    
-    BridgePtr<MSG> mBridgePtr;
+    std::shared_ptr<dds::domain::DomainParticipant> participant_;
+    std::string topic_name_;
+    std::shared_ptr<dds::topic::Topic<T>> topic_;
+    std::shared_ptr<dds::pub::Publisher> publisher_;
+    std::shared_ptr<dds::pub::DataWriter<T>> writer_;
 };
-
-template<typename MSG>
-using BridgePublisherPtr = std::shared_ptr<BridgePublisher<MSG>>;
 
 }
 }
