@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.5)
 
 # 定义项目名称和版本号
-project(Yunji_sdk VERSION 1.0.0)
+project(yunji_sdk VERSION 1.0.0)
 
 ## Project Options
 # 添加一个选项，用于控制是否构建示例程序
