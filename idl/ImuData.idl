@@ -1,0 +1,13 @@
+module ImuData
+{
+  @final
+  struct Imu
+  {
+    @key long id;
+    unsigned long long  sequence_frame;
+    unsigned long long  timestamp;
+    float accelerometer[3];    // x y z  m/s2
+    float gyroscope[3];        // x y z  rad/s
+    float quaternion[4];       // w x y z
+  };
+};

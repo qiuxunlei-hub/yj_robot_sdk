@@ -1,0 +1,15 @@
+module BmsData
+{
+  @final
+  struct Bms
+  {
+    @key long id;
+    unsigned long long sequence_frame;
+    unsigned long long timestamp;
+    float voltage;
+    float current;
+    float soc;    // 0~1
+    float temp;
+
+  };
+};

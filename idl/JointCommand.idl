@@ -1,0 +1,22 @@
+module JointCommand
+{
+  @final
+  struct Cmd
+  {
+    float q;            // motor target position
+    float dq;           // motor target velocity
+    float tau;          // motor target torque
+    float kp;           // motor spring stiffness coefficient
+    float kd;           // motor damper coefficient
+  };
+
+  @final
+  struct JointCmd
+  {
+    @key long id;
+    unsigned long long  sequence_frame;
+    unsigned long long  timestamp;
+    long num;
+    Cmd cmd[16];
+  };
+};

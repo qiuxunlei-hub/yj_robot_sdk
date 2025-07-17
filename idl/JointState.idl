@@ -1,0 +1,21 @@
+module JointState
+{
+  @final
+  struct State
+  {
+    float q;            // motor current pos (rad)
+    float dq;           // motor current vel (rad/s)
+    float tau_est;      // current estimated output torque (N*m)
+    float temp;         // joint temperature
+  };
+
+  @final
+  struct JointStateData
+  {
+    @key long id;
+    unsigned long long  sequence_frame;
+    unsigned long long  timestamp;
+    long num;
+    State state[16]; 
+  };
+};
