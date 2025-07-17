@@ -1,5 +1,5 @@
 #include "yunji/robot/dds_bridge/dds_bridge_subscriber.hpp"
-#include "HelloWorldData.hpp"
+#include "yunji/idl/HelloWorldData.hpp"
 
 #define TOPIC "TopicHelloWorld"
 
